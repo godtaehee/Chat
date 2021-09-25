@@ -6,9 +6,9 @@ import firebase from '../../firebase';
 import { getAuth, createUserWithEmailAndPassword } from '@firebase/auth';
 
 function RegisterPage() {
-  const auth = getAuth(firebase);
-
+  // Hooks
   const [errorFromSubmit, setErrorFromSubmit] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -17,18 +17,25 @@ function RegisterPage() {
     handleSubmit,
   } = useForm();
 
+  // Firebase
+  const auth = getAuth(firebase);
+
+  // ETC
   const password = useRef();
   password.current = watch('password');
 
   const onSubmit = async (data) => {
     try {
+      setLoading(true);
       let createdUser = await createUserWithEmailAndPassword(
         auth,
         data.email,
         data.password
       );
+      setLoading(false);
     } catch (e) {
       setErrorFromSubmit(e.message);
+      setLoading(false);
     }
   };
 
@@ -92,7 +99,7 @@ function RegisterPage() {
 
         {errorFromSubmit && <p>{errorFromSubmit}</p>}
 
-        <input type="submit" />
+        <input type="submit" disabled={loading} />
       </form>
       <Link
         style={{

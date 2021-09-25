@@ -3,7 +3,14 @@ import './styles.css';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import firebase from '../../firebase';
-import { getAuth, createUserWithEmailAndPassword } from '@firebase/auth';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from '@firebase/auth';
+
+import { getDatabase, ref, child, set } from '@firebase/database';
+import md5 from 'md5';
 
 function RegisterPage() {
   // Hooks
@@ -19,7 +26,9 @@ function RegisterPage() {
 
   // Firebase
   const auth = getAuth(firebase);
+  const database = getDatabase(firebase);
 
+  console.log(database);
   // ETC
   const password = useRef();
   password.current = watch('password');
@@ -32,6 +41,20 @@ function RegisterPage() {
         data.email,
         data.password
       );
+
+      await updateProfile(createdUser.user, {
+        displayName: data.name,
+        photoURL: `http://gravatar.com/avatar/${md5(
+          createdUser.user.email
+        )}?d=identicon`,
+      });
+
+      // Database 오류부분!!
+      await ref(database, 'user').child(ref, createdUser.user.uid).set({
+        name: createdUser.user.displayName,
+        image: createdUser.user.photoURL,
+      });
+
       setLoading(false);
     } catch (e) {
       setErrorFromSubmit(e.message);

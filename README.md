@@ -89,3 +89,120 @@ const unsubscribe = store.subscribe(listener);
 unsubscribe(); // 추후 구독을 비활성화 할 때 함수를 호출
 ```
 
+## 리액트 없이 쓰는 리덕스
+
+리덕스는 리액트에 종속되는 라이브러리가 아니다.
+
+리액트에서 사용하려고 만들어졌지만 다른 UI라이브러리/프레임워크(angular-redux, ember redux, Vue)에서도 사용하지만 Vue에서는 리덕스와 유사한 vuex를 주로 사용한다.
+
+### 액션 타입과 액션 생성 함수 정의
+
+프로젝트의 상태에 변화를 일으키는 것을 액션이라고 한다.
+
+먼저 액션에 이름을 줘야하는데 액션 이름은 문자열 형태로, 주로 대문자로 작성하며 액션 이름은 고유해야한다. 이름이 중복되면 의도하지 않은 결과가 발생할수 있기 때문이다.
+
+```javascript
+const divToggle = document.querySelector('.toggle');
+const counter = document.querySelector('h1');
+const btnIncrease = document.querySelector('#increase');
+const btnDecrease = document.querySelector('#decrease');
+
+const TOGGLE_SWITCH = 'TOGGLE_SWITCH';
+const INCREASE = 'INCREASE';
+const DECREASE = 'DECREASE';
+
+const toggleSwitch = () => ({ type: TOGGLE_SWITCH });
+const increase = (difference) => ({ type: INCREASE, difference });
+const decrease = () => ({ type: DECREASE });
+
+const initialState = {
+  toggle: false,
+  counter: 0,
+};
+
+// state가 undefined일 때는 initialState를 기본값으로 사용
+function reducer(state = initialState, action) {
+  // action.type에 따라 다른 작업을 처리함
+  switch (action.type) {
+    case TOGGLE_SWITCH:
+      return {
+        ...state, // 불변성 유지를 해 주어야 합니다.
+        toggle: !state.toggle,
+      };
+    case INCREASE:
+      return {
+        ...state,
+        counter: state.counter + action.difference,
+      };
+    case DECREASE:
+      return {
+        ...state,
+        counter: state.counter - 1,
+      };
+    default:
+      return state;
+  }
+}
+
+```
+
+리듀서에서는 상태의 불변성을 유지하면서 데이터에 변화를 일으켜 주어야 한다.
+
+이 작업을 할때 spread 연산자를 사용하면 편하다.
+
+객체의 구조가 복잡해지거나 배열도 함께 다루는 경우 immer 라이브러리르 사용하면 좀 더 쉽게 리듀서를 작성할 수 있다.
+
+### 스토어 만들기
+
+redux에서 스토어만드는 함수를 불러와서 그 함수의 매개변수로 리듀서를 넣어준다.
+
+```javascript
+import { createStore } from 'redux';
+
+(...) // 어떤 코드
+
+const store = createStore(reducer);
+```
+
+컴포넌트에서 리덕스 상태를 조회하는 과정에서 subscribe는 react-redux라이브러리가 대신해준다.
+
+## 리덕스의 세 가지 규칙
+
+### 단일 스토어
+
+하나의 애플리케이션 안에는 하나의 스토어가 들어 있으며 여러개 스토어가 불가능한건 아니다.
+
+특정 업데이트가 너무 빈번하게 일어나거나 애플리케이션의 특정 부분을 완전히 분리시킬 때 여러 개의 스토어를 만들 수도 있지만, 상태 관리가 복잡해질 수 있으므로 권장하지 않는다.
+
+### 읽기 전용 상태
+
+리덕스 상태는 읽기 전용입니다. 기존에 리액트에서 setState를 사용하여 state를 업데이트할 때도 객체나 배열을 업데이트 하는 과정에서 불변성을 지켜주기 위해 spread 연산자를 사용하거나 immer와 같은 불변성 관리 라이브러리르 사용했던것처럼 리덕스도 마찬가지이다.
+
+**상태를 업데이트 할 때 기존의 객체는 건드리지 않고 새로운 객체를 생성해 주어야 합니다.**
+
+리덕스에서 불변성을 유지해야 하는 이유는 내부적으로 데이터가 변경되는 것을 감지하기 위해 얕은 비교(shallow equality) 검사를 하기 때문입니다. 객체의 변화를 감지할 때 객체의 깊숙한 안쪽까지 비교하는 것이 아니라 겉햝기 식으로 비교하여 좋은 성능을 유지할 수 있는 것이다.
+
+### 리듀서는 순수한 함수
+
+변화를 일으키는 리듀서 함수는 순수한 함수여야 합니다. 순수한 함수는 다음 조건을 만족한다.
+
+- 리듀서 함수는 이전 상태와 액션 객체를 파라미터로 받습니다.
+- 파라미터 외의 값에는 의존하면 안 됩니다.
+- 이전 상태는 절대로 건드리지 않고, 변화를 준 새로운 상태 객체를 만들어서 반환한다.
+- 똑같은 파라미터로 호출된 리듀서 함수는 언제나 똑같은 결과 값을 반환해야 한다.
+
+리듀서를 작성할 때는 위 네 가지 사항을 주의해야 한다. 예를 들어 리듀서 함수 내부에서 랜덤 값을 만들거나, Date함수를 사용하여 현재 시간을 가져오거나, 네트워크 요청을 한다면, 파라미터가 같아도 다른 결과를 만들어 낼 수 있기 때문에 사용하면 안된다.
+
+이러한 작업은 리듀서 함수 바깥에서 처리를 해줘야한다. 액션을 만드는 과정에서 처리해도 되고, 추후 배울 리덕스 미들웨어에서도 처리해도 됩니다. 주로 네트워크 요청과 같은 비동기 작업은 미들웨어를 통해 관리한다.
+
+### 리덕스 프로젝트에 적용하는 대략적인 플로우
+
+1. 액션 타입, 액션 함수 작성
+2. 리듀서를 작성
+3. 스토어 만들기
+
+
+## 기초 프젝 해보기 깃헙
+
+[여기에 해봄](https://github.com/godtaehee/parcel-basic-redux-trainning)
+

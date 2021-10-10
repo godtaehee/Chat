@@ -1,80 +1,60 @@
 import React, { useRef, useState } from 'react';
-import './styles.css';
+import '../../index.css';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import firebase from '../../firebase';
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from '@firebase/auth';
-
-import { getDatabase, ref, child, set } from '@firebase/database';
 import md5 from 'md5';
 
 function RegisterPage() {
-  // Hooks
-  const [errorFromSubmit, setErrorFromSubmit] = useState('');
-  const [loading, setLoading] = useState(false);
-
   const {
     register,
     watch,
     formState: { errors },
     handleSubmit,
   } = useForm();
+  const [errorFromSubmit, setErrorFromSubmit] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Firebase
-  const auth = getAuth(firebase);
-  const database = getDatabase(firebase);
-
-  console.log(database);
-  // ETC
   const password = useRef();
   password.current = watch('password');
 
   const onSubmit = async (data) => {
     try {
       setLoading(true);
-      let createdUser = await createUserWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
-      );
+      let createdUser = await firebase
+        .auth()
+        .createUserWithEmailAndPassword(data.email, data.password);
+      console.log(createdUser);
 
-      await updateProfile(createdUser.user, {
+      await createdUser.user.updateProfile({
         displayName: data.name,
         photoURL: `http://gravatar.com/avatar/${md5(
           createdUser.user.email
         )}?d=identicon`,
       });
 
-      // Database 오류부분!!
-      await ref(database, 'user').child(ref, createdUser.user.uid).set({
+      await firebase.database().ref('users').child(createdUser.user.uid).set({
         name: createdUser.user.displayName,
         image: createdUser.user.photoURL,
       });
 
       setLoading(false);
-    } catch (e) {
-      setErrorFromSubmit(e.message);
+    } catch (error) {
+      setErrorFromSubmit(error.message);
       setLoading(false);
     }
   };
 
   return (
     <div className="auth-wrapper">
-      <div style={{ textAlign: 'center' }}>
-        <h3>Register</h3>
-      </div>
       <form onSubmit={handleSubmit(onSubmit)}>
         <label>Email</label>
         <input
           name="email"
           type="email"
-          {...register('email', { required: true, pattern: /^\S+@\S+$/i })}
+          {...register('email', { require: true, pattern: /^\S+@\S+$/i })}
         />
-        {errors.email && <p>This field is required</p>}
+        {errors.email && <p>This email field is required</p>}
 
         <label>Name</label>
         <input
@@ -85,19 +65,23 @@ function RegisterPage() {
           <p>This name field is required</p>
         )}
         {errors.name && errors.name.type === 'maxLength' && (
-          <p>Your input exceed maxium length</p>
+          <p>Your input exceed maximum maxLength</p>
         )}
 
         <label>Password</label>
         <input
           name="password"
           type="password"
-          {...register('password', { required: true, minLength: 6 })}
+          {...register('password', {
+            required: true,
+            minLength: 6,
+          })}
         />
 
         {errors.password && errors.password.type === 'required' && (
           <p>This password field is required</p>
         )}
+
         {errors.password && errors.password.type === 'minLength' && (
           <p>Password must have at least 6 characters</p>
         )}
@@ -111,28 +95,24 @@ function RegisterPage() {
             validate: (value) => value === password.current,
           })}
         />
+
         {errors.password_confirm &&
-          errors.password_confirm.type === 'required' && (
+          errors.password_confirm.type === 'minLength' && (
             <p>This password_confirm field is required</p>
           )}
+
         {errors.password_confirm &&
           errors.password_confirm.type === 'validate' && (
-            <p>The password do not match</p>
+            <p>The password not same</p>
           )}
 
-        {errorFromSubmit && <p>{errorFromSubmit}</p>}
+        {errorFromSubmit && <p>${errorFromSubmit}</p>}
 
         <input type="submit" disabled={loading} />
+        <Link style={{ color: 'gray', textDecoration: 'none' }} to="login">
+          이미 아이디가 있다면..
+        </Link>
       </form>
-      <Link
-        style={{
-          color: 'gray',
-          textDecoration: 'none',
-        }}
-        to="login"
-      >
-        이미 아이디가 있다면...
-      </Link>
     </div>
   );
 }

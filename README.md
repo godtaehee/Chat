@@ -201,7 +201,6 @@ const store = createStore(reducer);
 2. 리듀서를 작성
 3. 스토어 만들기
 
-
 ## 기초 프젝 해보기 깃헙
 
 [여기에 해봄](https://github.com/godtaehee/parcel-basic-redux-trainning)

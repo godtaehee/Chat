@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setUser } from './redux/actions/user_action';
 
 function App() {
+  테스트 ㅌ테스트App(
   let history = useHistory();
   let dispatch = useDispatch();
   const isLoading = useSelector((state) => state.user.isLoading);
